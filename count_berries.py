@@ -24,7 +24,7 @@ def img_show(img, img_name=None):
 
 
 def main():
-    original_img = cv2.imread('./test4.jpg')
+    original_img = cv2.imread('./test5.jpg')
     img_show(original_img)
 
     gray_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
@@ -96,17 +96,18 @@ def main():
 
     median = np.median(areas)
     std = np.std(areas)
-    pprint(f'{areas = }')
+    # pprint(f'{areas = }')
     print(f'{median = }')
     print(f'{std = }')
 
     avg_area = np.mean([area for area in areas if abs(area - median) < std ])
+    count_by_area = sum(areas) / avg_area
     print(f'{avg_area = }')
-    print(f'{sum(areas) / avg_area = }')
+    print(f'{count_by_area = }')
 
     img_show(combined)
 
-"""
+
     MIN_RADIUS = 40
     MAX_RADIUS = round(MIN_RADIUS*2)
     DISTANCE = round(MIN_RADIUS*3)
@@ -123,29 +124,29 @@ def main():
 
     # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
-    count = 0
+    count_by_circle = 0
     for idx, i in enumerate(circles[0, :]):
         # Skip when the center of the circle is on bg (black)
         isOnBg = source_BW[i[1], i[0]] == np.array([0, 0, 0])
         if isOnBg.all():
             continue
 
-        count += 1
+        count_by_circle += 1
         # draw the the circle
         cv2.circle(plt_bg, (i[0], i[1]), i[2], (0, 255, 0), 5)
-        print(f"{count:>02}: {i}")
+        # print(f"{count_by_circle:>02}: {i}")
 
         # draw the center of the circle
         cv2.circle(plt_bg, (i[0], i[1]), 2, (0, 0, 255), 3)
 
+    print(f'{count_by_circle = }')
     img_show(plt_bg)
 
-    print(f'There are {count} blueberries.')
 
     # ipdb.set_trace()
 
     # cv2.destroyAllWindows()
 
-"""
+
 if __name__ == '__main__':
     main()
