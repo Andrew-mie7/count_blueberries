@@ -5,35 +5,44 @@ import numpy as np
 import ipdb
 import sys
 
+def wait_key():
+    while 1:
+        k = cv2.waitKey(0)
+        if k == 27:    # Esc key to stop
+            break
+        elif k == 32:
+            pass  # Space to keep going
+        else:
+            print(k)  # else print its value
 
 img = cv2.imread('./test3.jpg')
 cv2.imshow(winname='img', mat=img)
-cv2.waitKey(0)
+wait_key()
 
 GrayImage = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 GrayImage = cv2.medianBlur(GrayImage, 5)
 ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY)
 cv2.imshow(winname='th', mat=th)
-cv2.waitKey(0)
+wait_key()
 
 
 kernel = np.ones((5, 5), np.uint8)
 
 erosion = cv2.erode(th, kernel, iterations=2)
 cv2.imshow('erosion', erosion)
-cv2.waitKey(0)
+wait_key()
 
 dilation = cv2.dilate(erosion, kernel, iterations=10)
 cv2.imshow('dilation', dilation)
-cv2.waitKey(0)
+wait_key()
 
 denoised = dilation
 cv2.imshow('denoised', denoised)
-cv2.waitKey(0)
+wait_key()
 
 boundry = cv2.Canny(denoised, 30, 100)
 cv2.imshow(winname='boundry', mat=boundry)
-cv2.waitKey(0)
+wait_key()
 
 MIN_RADIUS = 100
 MAX_RADIUS = round(MIN_RADIUS*1.5)
@@ -69,14 +78,6 @@ cv2.imshow('detected circles', plt_bg)
 
 print(f'There are {count} berries.')
 
-while 1:
-    k = cv2.waitKey(0)
-    if k == 27:    # Esc key to stop
-        break
-    elif k == 32:
-        pass  # Space to keep going
-    else:
-        print(k)  # else print its value
 
 # ipdb.set_trace()
 
