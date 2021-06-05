@@ -11,8 +11,10 @@ def img_show(img):
     while 1:
         k = cv2.waitKey(0)
         if k == 27:     # Esc key to exit the whole progress
+            cv2.destroyAllWindows()
             sys.exit()
         elif k == 32:
+            cv2.destroyAllWindows()
             break       # Space key to keep going
         else:
             print(k)    # else print its value
@@ -24,18 +26,18 @@ def main():
 
     GrayImage = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
     GrayImage = cv2.medianBlur(GrayImage, 5)
-    ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY)
+    ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY_INV)
     img_show(th)
 
     kernel = np.ones((5, 5), np.uint8)
 
-    erosion = cv2.erode(th, kernel, iterations=2)
-    img_show(erosion)
-
-    dilation = cv2.dilate(erosion, kernel, iterations=10)
+    dilation = cv2.dilate(th, kernel, iterations=2)
     img_show(dilation)
 
-    denoised = dilation
+    erosion = cv2.erode(dilation, kernel, iterations=5)
+    img_show(erosion)
+
+    denoised = erosion
     img_show(denoised)
 
     boundary = cv2.Canny(denoised, 30, 100)
@@ -49,17 +51,16 @@ def main():
                                minRadius=100, maxRadius=150)
     circles = np.uint16(np.around(circles))
 
-    plt_bg = original_img.copy()
-    # plt_bg = denoised.copy()
-    # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
+    # plt_bg = original_img.copy()
+    plt_bg = denoised.copy()
+    plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
-    cv2.destroyAllWindows()
 
     count = 0
     for idx, i in enumerate(circles[0, :]):
         # Skip when the center of the circle is on white
-        isWhite = plt_bg[i[1], i[0]] == np.array([255, 255, 255])
-        if isWhite.all():
+        isOnBg = plt_bg[i[1], i[0]] == np.array([0, 0, 0])
+        if isOnBg.all():
             continue
 
         count += 1
