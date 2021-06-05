@@ -43,9 +43,35 @@ def main():
     https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
     '''
     dt = cv2.distanceTransform(source, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    dist = cv2.normalize(dt, dt, 0, 1., cv2.NORM_MINMAX)
-    img_show(dist, 'distance transform')
-    # ret, th = cv2.threshold(blur, 140, 255, cv2.THRESH_BINARY)
+    dist = cv2.normalize(dt, None, 0, 1, cv2.NORM_MINMAX)
+    img_show(dist)
+
+    BORDER = 100
+    PADDING = 20
+    dist_bordered = cv2.copyMakeBorder(
+        dist, BORDER, BORDER, BORDER, BORDER,
+        cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
+    kernel_template = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (2*(BORDER-PADDING)+1, 2*(BORDER-PADDING)+1))
+    kernel_template = cv2.copyMakeBorder(
+        kernel_template, PADDING, PADDING, PADDING, PADDING,
+        cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
+    dist_templ = cv2.distanceTransform(
+        kernel_template, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+
+    matched = cv2.matchTemplate(
+        dist_bordered, dist_templ, cv2.TM_CCOEFF_NORMED)
+    img_show(matched)
+
+    matched = cv2.normalize(matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    img_show(matched)
+
+    ret, th_matched = cv2.threshold(matched, 180, 255, cv2.THRESH_BINARY)
+    img_show(th_matched)
+
+"""
+    ret, th_dist = cv2.threshold(dist, 120, 255, cv2.THRESH_BINARY)
+    img_show(th_dist)
 
     kernel_e = np.ones((3, 3), np.uint8)
     erosion = cv2.erode(dilation, kernel_e, iterations=30)
@@ -68,7 +94,6 @@ def main():
     # TEST plt_bg = original_img.copy()
     plt_bg = denoised.copy()
     plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
-
 
     count = 0
     for idx, i in enumerate(circles[0, :]):
@@ -93,6 +118,6 @@ def main():
 
     # cv2.destroyAllWindows()
 
-
+"""
 if __name__ == '__main__':
     main()
