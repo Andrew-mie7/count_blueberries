@@ -6,35 +6,49 @@ import ipdb
 import sys
 
 
-def img_show(img):
-    cv2.imshow('img', img)
+def img_show(img, img_name=None):
+    if img_name is None:
+        img_name = 'img'
+    cv2.imshow(img_name, img)
     while 1:
         k = cv2.waitKey(0)
         if k == 27:     # Esc key to exit the whole progress
             cv2.destroyAllWindows()
             sys.exit()
         elif k == 32:
-            cv2.destroyAllWindows()
+            # cv2.destroyAllWindows()
             break       # Space key to keep going
         else:
             print(k)    # else print its value
 
 
 def main():
-    original_img = cv2.imread('./test3.jpg')
+    original_img = cv2.imread('./test2.jpg')
     img_show(original_img)
 
-    GrayImage = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
-    GrayImage = cv2.medianBlur(GrayImage, 5)
-    ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY_INV)
+    gray_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+    gray_img = cv2.medianBlur(gray_img, 5)
+    ret, th = cv2.threshold(gray_img, 140, 255, cv2.THRESH_BINARY_INV)
     img_show(th)
 
-    kernel = np.ones((5, 5), np.uint8)
-
-    dilation = cv2.dilate(th, kernel, iterations=2)
+    kernel_d = np.ones((5, 5), np.uint8)
+    dilation = cv2.dilate(th, kernel_d, iterations=2)
     img_show(dilation)
 
-    erosion = cv2.erode(dilation, kernel, iterations=5)
+    source = dilation
+    # distance transform
+    ''' ref:
+    https://stackoverflow.com/questions/26932891/detect-touching-overlapping-circles-ellipses-with-opencv-and-python
+
+    https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
+    '''
+    dt = cv2.distanceTransform(source, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    dist = cv2.normalize(dt, dt, 0, 1., cv2.NORM_MINMAX)
+    img_show(dist, 'distance transform')
+    # ret, th = cv2.threshold(blur, 140, 255, cv2.THRESH_BINARY)
+
+    kernel_e = np.ones((3, 3), np.uint8)
+    erosion = cv2.erode(dilation, kernel_e, iterations=30)
     img_show(erosion)
 
     denoised = erosion
@@ -49,21 +63,22 @@ def main():
     circles = cv2.HoughCircles(boundary, cv2.HOUGH_GRADIENT, 1, 100,
                                param1=50, param2=10,
                                minRadius=100, maxRadius=150)
-    circles = np.uint16(np.around(circles))
+    circles = np.uint16(np.floor(circles))
 
-    # plt_bg = original_img.copy()
+    # TEST plt_bg = original_img.copy()
     plt_bg = denoised.copy()
     plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
 
     count = 0
     for idx, i in enumerate(circles[0, :]):
-        # Skip when the center of the circle is on white
+        # Skip when the center of the circle is on bg (black)
         isOnBg = plt_bg[i[1], i[0]] == np.array([0, 0, 0])
         if isOnBg.all():
             continue
 
         count += 1
+        # draw the the circle
         cv2.circle(plt_bg, (i[0], i[1]), i[2], (0, 255, 0), 5)
         print(f"{idx:>02}: {i}")
 
@@ -72,7 +87,7 @@ def main():
 
     img_show(plt_bg)
 
-    print(f'There are {count} berries.')
+    print(f'There are {count} blueberries.')
 
     # ipdb.set_trace()
 
