@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ipdb
 import sys
+from pprint import pprint
 
 
 def img_show(img, img_name=None):
@@ -87,6 +88,17 @@ def main():
     boundary = cv2.Canny(source_BW, 30, 100)
     img_show(boundary)
 
+    (contours, _) = cv2.findContours(
+        boundary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    areas = [cv2.contourArea(cnt) for cnt in contours]
+    areas.sort()
+    pprint(areas)
+    pprint(sum(areas))
+    pprint(sum(areas) / 13000)
+    pprint(len(areas))
+
+"""
     MIN_RADIUS = 40
     MAX_RADIUS = round(MIN_RADIUS*2)
     DISTANCE = round(MIN_RADIUS*3)
@@ -126,6 +138,6 @@ def main():
 
     # cv2.destroyAllWindows()
 
-
+"""
 if __name__ == '__main__':
     main()
