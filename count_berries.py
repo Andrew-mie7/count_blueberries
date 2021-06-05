@@ -23,7 +23,7 @@ def img_show(img, img_name=None):
 
 
 def main():
-    original_img = cv2.imread('./test2.jpg')
+    original_img = cv2.imread('./test4.jpg')
     img_show(original_img)
 
     gray_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
@@ -31,19 +31,18 @@ def main():
     ret, th = cv2.threshold(gray_img, 140, 255, cv2.THRESH_BINARY_INV)
     img_show(th)
 
-    kernel_d = np.ones((5, 5), np.uint8)
-    dilation = cv2.dilate(th, kernel_d, iterations=2)
+    kernel_dilation = np.ones((5, 5), np.uint8)
+    dilation = cv2.dilate(th, kernel_dilation, iterations=1)
     img_show(dilation)
 
-    source = dilation
     # distance transform
     ''' ref:
     https://stackoverflow.com/questions/26932891/detect-touching-overlapping-circles-ellipses-with-opencv-and-python
 
     https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
     '''
-    dt = cv2.distanceTransform(source, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    dist = cv2.normalize(dt, None, 0, 1, cv2.NORM_MINMAX)
+    dist = cv2.distanceTransform(dilation, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    dist = cv2.normalize(dist, None, 0, 1, cv2.NORM_MINMAX)
     img_show(dist)
 
     BORDER = 100
@@ -63,49 +62,58 @@ def main():
         dist_bordered, dist_templ, cv2.TM_CCOEFF_NORMED)
     img_show(matched)
 
-    matched = cv2.normalize(matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    img_show(matched)
+    # matched = cv2.normalize(matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    # img_show(matched)
 
-    ret, th_matched = cv2.threshold(matched, 180, 255, cv2.THRESH_BINARY)
-    img_show(th_matched)
+    # ret, th_matched = cv2.threshold(matched, 160, 255, cv2.THRESH_BINARY)
+    # img_show(th_matched)
 
-"""
-    ret, th_dist = cv2.threshold(dist, 120, 255, cv2.THRESH_BINARY)
-    img_show(th_dist)
+    mn, mx, _, _ = cv2.minMaxLoc(matched)
+    THRESH = mx*0.25
+    _, th_matched = cv2.threshold(matched, THRESH, 255, cv2.THRESH_BINARY)
+    th_matched = cv2.normalize(th_matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
 
-    kernel_e = np.ones((3, 3), np.uint8)
-    erosion = cv2.erode(dilation, kernel_e, iterations=30)
+    kernel_erosion = np.ones((5, 5), np.uint8)
+    erosion = cv2.erode(th_matched, kernel_erosion, iterations=1)
     img_show(erosion)
 
-    denoised = erosion
-    img_show(denoised)
+    source_BW = erosion
 
-    boundary = cv2.Canny(denoised, 30, 100)
+    source_BGR = cv2.cvtColor(source_BW, cv2.COLOR_GRAY2BGR)
+    combined = cv2.addWeighted(original_img, .5, source_BGR, .5, 0.0)
+    img_show(combined)
+
+
+    boundary = cv2.Canny(source_BW, 30, 100)
     img_show(boundary)
 
-    MIN_RADIUS = 100
-    MAX_RADIUS = round(MIN_RADIUS*1.5)
-    DISTANCE = round(MIN_RADIUS*1.5)
-    circles = cv2.HoughCircles(boundary, cv2.HOUGH_GRADIENT, 1, 100,
-                               param1=50, param2=10,
-                               minRadius=100, maxRadius=150)
+    MIN_RADIUS = 40
+    MAX_RADIUS = round(MIN_RADIUS*2)
+    DISTANCE = round(MIN_RADIUS*3)
+    ROUNDNESS = 3
+    circles = cv2.HoughCircles(boundary, cv2.HOUGH_GRADIENT, 1, DISTANCE,
+                               param1=50, param2=ROUNDNESS,
+                               minRadius=MIN_RADIUS, maxRadius=MAX_RADIUS)
     circles = np.uint16(np.floor(circles))
 
-    # TEST plt_bg = original_img.copy()
-    plt_bg = denoised.copy()
-    plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
+    # original_img_bordered = cv2.copyMakeBorder(
+    #     original_img, BORDER, BORDER, BORDER, BORDER,
+    #     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
+    plt_bg = combined.copy() # TEST
+
+    # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
     count = 0
     for idx, i in enumerate(circles[0, :]):
         # Skip when the center of the circle is on bg (black)
-        isOnBg = plt_bg[i[1], i[0]] == np.array([0, 0, 0])
+        isOnBg = source_BW[i[1], i[0]] == np.array([0, 0, 0])
         if isOnBg.all():
             continue
 
         count += 1
         # draw the the circle
         cv2.circle(plt_bg, (i[0], i[1]), i[2], (0, 255, 0), 5)
-        print(f"{idx:>02}: {i}")
+        print(f"{count:>02}: {i}")
 
         # draw the center of the circle
         cv2.circle(plt_bg, (i[0], i[1]), 2, (0, 0, 255), 3)
@@ -118,6 +126,6 @@ def main():
 
     # cv2.destroyAllWindows()
 
-"""
+
 if __name__ == '__main__':
     main()
