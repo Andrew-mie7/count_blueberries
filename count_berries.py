@@ -5,7 +5,8 @@ import numpy as np
 import ipdb
 import sys
 
-def wait_key():
+def img_show(img):
+    cv2.imshow(img)
     while 1:
         k = cv2.waitKey(0)
         if k == 27:    # Esc key to stop
@@ -16,34 +17,28 @@ def wait_key():
             print(k)  # else print its value
 
 def main():
-    img = cv2.imread('./test3.jpg')
-    cv2.imshow(winname='img', mat=img)
-    wait_key()
+    original_img = cv2.imread('./test3.jpg')
+    img_show(original_img)
 
-    GrayImage = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    GrayImage = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
     GrayImage = cv2.medianBlur(GrayImage, 5)
     ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY)
-    cv2.imshow(winname='th', mat=th)
-    wait_key()
+    img_show(th)
 
 
     kernel = np.ones((5, 5), np.uint8)
 
     erosion = cv2.erode(th, kernel, iterations=2)
-    cv2.imshow('erosion', erosion)
-    wait_key()
+    img_show(erosion)
 
     dilation = cv2.dilate(erosion, kernel, iterations=10)
-    cv2.imshow('dilation', dilation)
-    wait_key()
+    img_show(dilation)
 
     denoised = dilation
-    cv2.imshow('denoised', denoised)
-    wait_key()
+    img_show(denoised)
 
     boundry = cv2.Canny(denoised, 30, 100)
     cv2.imshow(winname='boundry', mat=boundry)
-    wait_key()
 
     MIN_RADIUS = 100
     MAX_RADIUS = round(MIN_RADIUS*1.5)
@@ -53,7 +48,7 @@ def main():
                             minRadius=100, maxRadius=150)
     circles = np.uint16(np.around(circles))
 
-    plt_bg = img.copy()
+    plt_bg = original_img.copy()
     # plt_bg = denoised.copy()
     # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
@@ -75,7 +70,7 @@ def main():
         # draw the center of the circle
         cv2.circle(plt_bg, (i[0], i[1]), 2, (0, 0, 255), 3)
 
-    cv2.imshow('detected circles', plt_bg)
+    img_show(plt_bg)
 
     print(f'There are {count} berries.')
 
