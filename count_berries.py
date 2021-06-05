@@ -93,10 +93,18 @@ def main():
 
     areas = [cv2.contourArea(cnt) for cnt in contours]
     areas.sort()
-    pprint(areas)
-    pprint(sum(areas))
-    pprint(sum(areas) / 13000)
-    pprint(len(areas))
+
+    median = np.median(areas)
+    std = np.std(areas)
+    pprint(f'{areas = }')
+    print(f'{median = }')
+    print(f'{std = }')
+
+    avg_area = np.mean([area for area in areas if abs(area - median) < std ])
+    print(f'{avg_area = }')
+    print(f'{sum(areas) / avg_area = }')
+
+    img_show(combined)
 
 """
     MIN_RADIUS = 40
