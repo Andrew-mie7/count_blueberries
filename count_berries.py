@@ -5,16 +5,18 @@ import numpy as np
 import ipdb
 import sys
 
+
 def img_show(img):
     cv2.imshow('img', img)
     while 1:
         k = cv2.waitKey(0)
-        if k == 27:    # Esc key to stop the whole progress
+        if k == 27:     # Esc key to exit the whole progress
             sys.exit()
         elif k == 32:
-            break  # Space to keep going
+            break       # Space key to keep going
         else:
-            print(k)  # else print its value
+            print(k)    # else print its value
+
 
 def main():
     original_img = cv2.imread('./test3.jpg')
@@ -24,7 +26,6 @@ def main():
     GrayImage = cv2.medianBlur(GrayImage, 5)
     ret, th = cv2.threshold(GrayImage, 140, 255, cv2.THRESH_BINARY)
     img_show(th)
-
 
     kernel = np.ones((5, 5), np.uint8)
 
@@ -37,24 +38,22 @@ def main():
     denoised = dilation
     img_show(denoised)
 
-    boundry = cv2.Canny(denoised, 30, 100)
-    cv2.imshow(winname='boundry', mat=boundry)
+    boundary = cv2.Canny(denoised, 30, 100)
+    img_show(boundary)
 
     MIN_RADIUS = 100
     MAX_RADIUS = round(MIN_RADIUS*1.5)
     DISTANCE = round(MIN_RADIUS*1.5)
-    circles = cv2.HoughCircles(boundry, cv2.HOUGH_GRADIENT, 1, 100,
-                            param1=50, param2=10,
-                            minRadius=100, maxRadius=150)
+    circles = cv2.HoughCircles(boundary, cv2.HOUGH_GRADIENT, 1, 100,
+                               param1=50, param2=10,
+                               minRadius=100, maxRadius=150)
     circles = np.uint16(np.around(circles))
 
     plt_bg = original_img.copy()
     # plt_bg = denoised.copy()
     # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
 
-
     cv2.destroyAllWindows()
-
 
     count = 0
     for idx, i in enumerate(circles[0, :]):
@@ -74,10 +73,10 @@ def main():
 
     print(f'There are {count} berries.')
 
-
     # ipdb.set_trace()
 
     # cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     main()
