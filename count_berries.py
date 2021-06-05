@@ -6,13 +6,13 @@ import ipdb
 import sys
 
 def img_show(img):
-    cv2.imshow(img)
+    cv2.imshow('img', img)
     while 1:
         k = cv2.waitKey(0)
-        if k == 27:    # Esc key to stop
-            break
+        if k == 27:    # Esc key to stop the whole progress
+            sys.exit()
         elif k == 32:
-            pass  # Space to keep going
+            break  # Space to keep going
         else:
             print(k)  # else print its value
 
