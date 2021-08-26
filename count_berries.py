@@ -1,10 +1,8 @@
-from PIL import Image
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-import ipdb
 import sys
-from pprint import pprint
+import time
+
 
 
 def img_show(img, img_name=None):
@@ -16,25 +14,29 @@ def img_show(img, img_name=None):
         if k == 27:     # Esc key to exit the whole progress
             cv2.destroyAllWindows()
             sys.exit()
-        elif k == 32:
+        elif k == 32:   # Space key to move on
             # cv2.destroyAllWindows()
-            break       # Space key to keep going
+            break
         else:
-            print(k)    # else print its value
+            time.sleep(0.1)
 
 
 def main():
     original_img = cv2.imread('./test5.jpg')
     img_show(original_img)
 
-    gray_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
-    gray_img = cv2.medianBlur(gray_img, 5)
-    ret, th = cv2.threshold(gray_img, 140, 255, cv2.THRESH_BINARY_INV)
-    img_show(th)
+    # binarize
+    grayed = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.medianBlur(grayed, 5)
 
-    kernel_dilation = np.ones((5, 5), np.uint8)
-    dilation = cv2.dilate(th, kernel_dilation, iterations=1)
-    img_show(dilation)
+    _, threshed = cv2.threshold(blurred, 140, 255, cv2.THRESH_BINARY_INV)
+    img_show(threshed)
+
+    kernel_dilate = np.ones((5, 5), np.uint8)
+    dilated = cv2.dilate(threshed, kernel_dilate, iterations=1)
+
+    binarized = dilated
+    img_show(binarized)
 
     # distance transform
     ''' ref:
@@ -42,7 +44,7 @@ def main():
 
     https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
     '''
-    dist = cv2.distanceTransform(dilation, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    dist = cv2.distanceTransform(binarized, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
     dist = cv2.normalize(dist, None, 0, 1, cv2.NORM_MINMAX)
     img_show(dist)
 
@@ -63,11 +65,7 @@ def main():
         dist_bordered, dist_templ, cv2.TM_CCOEFF_NORMED)
     img_show(matched)
 
-    # matched = cv2.normalize(matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    # img_show(matched)
 
-    # ret, th_matched = cv2.threshold(matched, 160, 255, cv2.THRESH_BINARY)
-    # img_show(th_matched)
 
     mn, mx, _, _ = cv2.minMaxLoc(matched)
     THRESH = mx*0.25
@@ -104,7 +102,6 @@ def main():
     count_by_area = sum(areas) / avg_area
     print(f'{avg_area = }')
     print(f'{count_by_area = }')
-
     img_show(combined)
 
 
@@ -117,9 +114,6 @@ def main():
                                minRadius=MIN_RADIUS, maxRadius=MAX_RADIUS)
     circles = np.uint16(np.floor(circles))
 
-    # original_img_bordered = cv2.copyMakeBorder(
-    #     original_img, BORDER, BORDER, BORDER, BORDER,
-    #     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
     plt_bg = combined.copy() # TEST
 
     # plt_bg = cv2.cvtColor(plt_bg, cv2.COLOR_GRAY2BGR)
@@ -132,11 +126,10 @@ def main():
             continue
 
         count_by_circle += 1
-        # draw the the circle
+        # draw the circle as green
         cv2.circle(plt_bg, (i[0], i[1]), i[2], (0, 255, 0), 5)
-        # print(f"{count_by_circle:>02}: {i}")
 
-        # draw the center of the circle
+        # draw the center of the circle as red
         cv2.circle(plt_bg, (i[0], i[1]), 2, (0, 0, 255), 3)
 
     print(f'{count_by_circle = }')
