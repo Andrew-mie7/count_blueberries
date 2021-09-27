@@ -3,13 +3,18 @@ import numpy as np
 import sys
 import time
 
+INPUT_IMG = './test5.jpg'
+count = 0
 
-
+# TODO use arrow key to move forward and backward
 def img_show(img, img_name=None):
+    global count
     if img_name is None:
         img_name = 'img'
     cv2.imshow(img_name, img)
-    while 1:
+    # cv2.imwrite(f'{count:02}_{img_name}.jpg', img)
+    count += 1
+    while True:
         k = cv2.waitKey(0)
         if k == 27:     # Esc key to exit the whole progress
             cv2.destroyAllWindows()
@@ -22,21 +27,21 @@ def img_show(img, img_name=None):
 
 
 def main():
-    original_img = cv2.imread('./test5.jpg')
-    img_show(original_img)
+    original_img = cv2.imread(INPUT_IMG)
+    img_show(original_img, 'original')
 
     # binarize
     grayed = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.medianBlur(grayed, 5)
 
     _, threshed = cv2.threshold(blurred, 140, 255, cv2.THRESH_BINARY_INV)
-    img_show(threshed)
+    img_show(threshed, 'thresholded')
 
     kernel_dilate = np.ones((5, 5), np.uint8)
     dilated = cv2.dilate(threshed, kernel_dilate, iterations=1)
 
     binarized = dilated
-    img_show(binarized)
+    img_show(binarized, 'dilated')
 
     # distance transform
     ''' ref:
@@ -45,8 +50,8 @@ def main():
     https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
     '''
     dist = cv2.distanceTransform(binarized, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    dist = cv2.normalize(dist, None, 0, 1, cv2.NORM_MINMAX)
-    img_show(dist)
+    dist = cv2.normalize(dist, None, 0, 255, cv2.NORM_MINMAX)
+    img_show(dist, 'distance transform')
 
     BORDER = 100
     PADDING = 20
@@ -60,10 +65,14 @@ def main():
         cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
     dist_templ = cv2.distanceTransform(
         kernel_template, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    img_show(dist_templ, 'dist_templ')
+
 
     matched = cv2.matchTemplate(
         dist_bordered, dist_templ, cv2.TM_CCOEFF_NORMED)
-    img_show(matched)
+    matched = matched.clip(min=0) # set neg nums to zero
+    matched = cv2.normalize(matched, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    img_show(matched, 'find lightest parts')
 
 
 
@@ -74,17 +83,17 @@ def main():
 
     kernel_erosion = np.ones((5, 5), np.uint8)
     erosion = cv2.erode(th_matched, kernel_erosion, iterations=1)
-    img_show(erosion)
+    img_show(erosion, 'binarized')
 
     source_BW = erosion
 
     source_BGR = cv2.cvtColor(source_BW, cv2.COLOR_GRAY2BGR)
     combined = cv2.addWeighted(original_img, .5, source_BGR, .5, 0.0)
-    img_show(combined)
+    img_show(combined, 'overlayed')
 
 
     boundary = cv2.Canny(source_BW, 30, 100)
-    img_show(boundary)
+    img_show(boundary, 'with boundary')
 
     (contours, _) = cv2.findContours(
         boundary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -102,7 +111,7 @@ def main():
     count_by_area = sum(areas) / avg_area
     print(f'{avg_area = }')
     print(f'{count_by_area = }')
-    img_show(combined)
+    img_show(combined, 'overlayed')
 
 
     MIN_RADIUS = 40
@@ -133,7 +142,7 @@ def main():
         cv2.circle(plt_bg, (i[0], i[1]), 2, (0, 0, 255), 3)
 
     print(f'{count_by_circle = }')
-    img_show(plt_bg)
+    img_show(plt_bg, 'with circles')
 
 
     # ipdb.set_trace()
