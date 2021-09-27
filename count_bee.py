@@ -11,38 +11,40 @@ def q():
 
 
 def process(im: np.ndarray):
-    SCALAR = 5
+    SCALAR = 1
     im = cv2.resize(im, (im.shape[1]*SCALAR, im.shape[0]*SCALAR), cv2.INTER_AREA)
 
     TH = 120
-    TH_matched = 120
+    ERODE = 3
 
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     # cv2.imshow('gray', gray)
 
     blurred = cv2.medianBlur(gray, 9*SCALAR)
     # cv2.imshow('blurred', blurred)
+    light = cv2.blur(gray, (99*SCALAR, 99*SCALAR))
+    light = cv2.bitwise_not(light)
+    
+    light = cv2.normalize(light, None, 0, 1, cv2.NORM_MINMAX)
+    cv2.imshow('light', light)
 
     th, bw = cv2.threshold(blurred, TH, 255, cv2.THRESH_BINARY)
     # cv2.imshow('bw', bw)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3*SCALAR, 3*SCALAR))
-    morph = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, kernel)
-    # cv2.imshow('morph', morph)
+    kernel_erosion = np.ones((ERODE, ERODE), np.uint8)
+    eroded = cv2.erode(bw, kernel_erosion, iterations=1)
+    cv2.imshow('eroded', eroded)
 
-    # masked = cv2.bitwise_and(gray, gray, mask=morph)
-    # cv2.imshow('masked', masked)
-
-    dist = cv2.distanceTransform(morph, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    dist = cv2.distanceTransform(eroded, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
     dist = cv2.normalize(dist, None, 0, 1, cv2.NORM_MINMAX)
     cv2.imshow('dist', dist)
 
-    dist[dist < 0.3] = 0
+    # dist[dist < 0.3] = 0
     # dist = cv2.normalize(dist, None, 0, 255, cv2.NORM_MINMAX)
     # dist = dist.astype(np.uint8)
     # cv2.imshow('dist-', dist)
 
-    borderSize = 50
+    borderSize = 10
     distborder = cv2.copyMakeBorder(dist, borderSize, borderSize, borderSize, borderSize, 
                                     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED, 0)
     # cv2.imshow('distborder', distborder)
@@ -57,9 +59,10 @@ def process(im: np.ndarray):
     # cv2.imshow('distTempl', distTempl)
 
     matched = cv2.matchTemplate(distborder, distTempl, cv2.TM_CCOEFF_NORMED)
-    kernel_erosion = np.ones((5, 5), np.uint8)
-    matched = cv2.erode(matched, kernel_erosion, iterations=1)
     cv2.imshow('matched', matched)
+    kernel_erosion = np.ones((ERODE, ERODE), np.uint8)
+    matched = cv2.erode(matched, kernel_erosion, iterations=1)
+    cv2.imshow('matched2', matched)
 
     mn, mx, _, _ = cv2.minMaxLoc(matched)
     THRESH = mx*0.25
@@ -68,22 +71,17 @@ def process(im: np.ndarray):
     cv2.imshow('th_matched', th_matched)
 
 
-    peaks8u = cv2.convertScaleAbs(th_matched)
+    final = th_matched
 
-
-    # boundary = cv2.Canny(peaks8u, 30, 100)
-    # cv2.imshow('boundary', boundary)
-
-
-    contours, hierarchy = cv2.findContours(peaks8u, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(final, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     # print(len(contours))
         # to use as mask
 
     for i, contour in enumerate(contours):
-        if cv2.contourArea(contour) < 50*SCALAR*SCALAR:
+        if cv2.contourArea(contour) < 10*SCALAR*SCALAR:
             continue
         x, y, w, h = cv2.boundingRect(contour)
-        _, mx, _, mxloc = cv2.minMaxLoc(morph[y:y+h, x:x+w], peaks8u[y:y+h, x:x+w])
+        _, mx, _, mxloc = cv2.minMaxLoc(final[y:y+h, x:x+w], final[y:y+h, x:x+w])
         cv2.rectangle(im, (x, y), (x+w, y+h), (0, 255, 0), 1)
         cv2.drawContours(im, contours, i, (0, 0, 255), 1)
     
@@ -93,24 +91,24 @@ def process(im: np.ndarray):
 
 
 
-# # Reading Videos
-# capture = cv2.VideoCapture('./video_2.mp4')
-# while True:
-#     isTrue, frame = capture.read()
-#     if isTrue == True:
+# Reading Videos
+capture = cv2.VideoCapture('./video.mp4')
+while True:
+    isTrue, frame = capture.read()
+    if isTrue == True:
         
-#         frame_resized = frame[150:-150, 300:-500]
-#         cv2.imshow('Video Resized', process(frame_resized))
+        frame_resized = frame[150:-150, 300:-500]
+        cv2.imshow('Video Resized', process(frame_resized))
 
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             cv2.waitKey(-1)
-#     else:
-#         break
-# capture.release()
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.waitKey(-1)
+    else:
+        break
+capture.release()
 
-im = cv2.imread('./count_bee.png')
-done = process(im)
-cv2.imshow('', done)
+# im = cv2.imread('./bee_test.png')
+# done = process(im)
+# cv2.imshow('', done)
 
 
 cv2.waitKey(0)
