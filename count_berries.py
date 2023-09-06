@@ -8,7 +8,14 @@ import time
 INPUT_IMG = './worm.jpg'
 count = 0
 
+def kernel(n: int):
+    return np.ones((n, n), np.uint8)
+
+
+
 # TODO use arrow key to move forward and backward
+imgs = list()
+# TODO use inspect to get img_name automatically
 def img_show(img, img_name=None):
     global count
     if img_name is None:
@@ -33,17 +40,13 @@ original_img = cv2.imread(INPUT_IMG)
 img_show(original_img, 'original')
 
 # binarize
-grayed = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
-blurred = cv2.medianBlur(grayed, 5)
+img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+img = cv2.medianBlur(img, 5)
 
-_, threshed = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+_, img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
 # img_show(threshed, 'thresholded')
 
-kernel_dilate = np.ones((5, 5), np.uint8)
-dilated = cv2.dilate(threshed, kernel_dilate, iterations=1)
-
-binarized = dilated
-# img_show(binarized, 'dilated')
+img = cv2.dilate(img, kernel(5), iterations=1)
 
 # distance transform
 ''' ref:
@@ -51,16 +54,26 @@ https://stackoverflow.com/questions/26932891/detect-touching-overlapping-circles
 
 https://docs.opencv.org/3.0-rc1/d2/dbd/tutorial_distance_transform.html
 '''
-dist = cv2.distanceTransform(binarized, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-dist = cv2.normalize(dist, None, 0, 255.0, cv2.NORM_MINMAX)
-dist = dist.astype('uint8')
-img_show(dist, 'distance transform')
+img = cv2.distanceTransform(img, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+img = cv2.normalize(img, None, 0, 255.0, cv2.NORM_MINMAX)
+img = img.astype('uint8')
+img_show(img, 'distance transform')
+
+# %%
+
+# dist = cv2.medianBlur(dist,5) 
+# img_show(dist, 'blurred distance transform')
+
+# # %%
+# ret, dist = cv2.threshold(dist,127,255,cv2.THRESH_TOZERO)
+# img_show(dist, 'THRESH_TOZERO')
 
 
-dist = cv2.medianBlur(dist,15) 
-img_show(dist, 'blurred distance transform')
-th_matched = cv2.adaptiveThreshold(dist,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,51,2)
-img_show(th_matched, 'th_matched')
+SIZE = 11
+img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,SIZE,-2)
+img_show(img, 'adaptiveThreshold')
+img = cv2.erode(img, kernel(3), iterations=1)
+img_show(img, 'eroded')
 
 
 # BORDER = 30
@@ -97,10 +110,10 @@ img_show(th_matched, 'th_matched')
 
 # source_BW = erosion
 
-# source_BGR = cv2.cvtColor(source_BW, cv2.COLOR_GRAY2BGR)
-# combined = cv2.addWeighted(original_img, .5, source_BGR, .5, 0.0)
-# img_show(combined, 'overlayed')
-
+img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+combined = cv2.addWeighted(original_img, .5, img, .5, 0.0)
+img_show(combined, 'overlayed')
+cv2.imwrite(f'worm_overlayed.jpg', img)
 
 # boundary = cv2.Canny(source_BW, 30, 100)
 # img_show(boundary, 'with boundary')
